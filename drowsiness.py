@@ -6,15 +6,11 @@ import winsound
 import threading
 import numpy as np
 
-# =============================
-# SYSTEM WARM-UP
-# =============================
+
 SYSTEM_START_TIME = time.time()
 ALERT_ENABLE_DELAY = 5  # seconds
 
-# =============================
-# Continuous Siren (2 seconds)
-# =============================
+
 def play_siren(duration=2):
     def siren():
         end_time = time.time() + duration
@@ -22,9 +18,7 @@ def play_siren(duration=2):
             winsound.Beep(1000, 300)
     threading.Thread(target=siren, daemon=True).start()
 
-# =============================
-# Utility functions
-# =============================
+
 def dist(p1, p2):
     return math.dist(p1, p2)
 
@@ -40,9 +34,6 @@ def mouth_aspect_ratio(mouth):
     C = dist(mouth[0], mouth[6])
     return (A + B) / (2.0 * C)
 
-# =============================
-# Head Pose (Yaw Angle)
-# =============================
 def get_yaw_angle(landmarks, w, h):
     image_points = np.array([
         (landmarks[1].x * w, landmarks[1].y * h),     # Nose
@@ -83,9 +74,6 @@ def get_yaw_angle(landmarks, w, h):
     angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
     return angles[1]  # Yaw
 
-# =============================
-# MediaPipe setup
-# =============================
 mp_tasks = mp.tasks
 BaseOptions = mp_tasks.BaseOptions
 FaceLandmarker = mp_tasks.vision.FaceLandmarker
@@ -100,25 +88,17 @@ options = FaceLandmarkerOptions(
 
 face_landmarker = FaceLandmarker.create_from_options(options)
 
-# =============================
-# Landmark indices
-# =============================
+
 LEFT_EYE  = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [362, 385, 387, 263, 373, 380]
 MOUTH = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308]
 
-# =============================
-# Thresholds
-# =============================
 EAR_THRESHOLD = 0.25
 MAR_THRESHOLD = 0.60
 DROWSY_TIME = 2
 YAW_THRESHOLD = 25
 HEAD_TURN_TIME = 2
 
-# =============================
-# State variables
-# =============================
 eye_start_time = None
 yawn_start_time = None
 head_turn_start_time = None
@@ -127,9 +107,6 @@ prev_drowsy = 0
 prev_yawn = 0
 prev_head_turn = 0
 
-# =============================
-# Camera
-# =============================
 cap = cv2.VideoCapture(0)
 
 while cap.isOpened():
@@ -164,9 +141,6 @@ while cap.isOpened():
             lm = landmarks[i]
             mouth.append((int(lm.x * w), int(lm.y * h)))
 
-        # -----------------------------
-        # EYE CLOSURE (≥ 2s)
-        # -----------------------------
         ear = (eye_aspect_ratio(left_eye) + eye_aspect_ratio(right_eye)) / 2
         if ear < EAR_THRESHOLD:
             if eye_start_time is None:
@@ -178,9 +152,6 @@ while cap.isOpened():
         else:
             eye_start_time = None
 
-        # -----------------------------
-        # YAWNING
-        # -----------------------------
         mar = mouth_aspect_ratio(mouth)
         if mar > MAR_THRESHOLD:
             if yawn_start_time is None:
@@ -192,9 +163,6 @@ while cap.isOpened():
         else:
             yawn_start_time = None
 
-        # -----------------------------
-        # HEAD TURN (ANGLE ≥ 2s)
-        # -----------------------------
         yaw_angle = get_yaw_angle(landmarks, w, h)
         cv2.putText(frame, f"Yaw: {int(yaw_angle)}°", (40, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 0), 2)
@@ -209,9 +177,6 @@ while cap.isOpened():
         else:
             head_turn_start_time = None
 
-        # -----------------------------
-        # SOUND TRIGGERS (EDGE)
-        # -----------------------------
         if (drowsy == 1 and prev_drowsy == 0) or \
            (yawn == 1 and prev_yawn == 0) or \
            (head_turn == 1 and prev_head_turn == 0):
