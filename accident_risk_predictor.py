@@ -1,7 +1,6 @@
 import pickle
 import numpy as np
 
-# Load trained ML model (must exist in same folder)
 with open("accident_risk_model.pkl", "rb") as f:
     model = pickle.load(f)
 
